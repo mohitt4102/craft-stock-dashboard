@@ -76,7 +76,7 @@ export function InventoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] w-[95%] max-w-[95%] sm:w-full">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>
@@ -90,7 +90,7 @@ export function InventoryDialog({
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
+              <Label htmlFor="name" className="text-right text-xs sm:text-sm">
                 Name
               </Label>
               <Input
@@ -103,11 +103,11 @@ export function InventoryDialog({
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="category" className="text-right">
+              <Label htmlFor="category" className="text-right text-xs sm:text-sm">
                 Category
               </Label>
               <Select
-                value={formData.category as string}
+                value={formData.category?.toString() || ""}
                 onValueChange={(value) =>
                   setFormData({ ...formData, category: value })
                 }
@@ -125,7 +125,7 @@ export function InventoryDialog({
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="quantity" className="text-right">
+              <Label htmlFor="quantity" className="text-right text-xs sm:text-sm">
                 Quantity
               </Label>
               <Input
@@ -140,7 +140,7 @@ export function InventoryDialog({
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="purchasePrice" className="text-right">
+              <Label htmlFor="purchasePrice" className="text-right text-xs sm:text-sm">
                 Purchase Price
               </Label>
               <Input
@@ -156,7 +156,7 @@ export function InventoryDialog({
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="sellingPrice" className="text-right">
+              <Label htmlFor="sellingPrice" className="text-right text-xs sm:text-sm">
                 Selling Price
               </Label>
               <Input
@@ -172,7 +172,7 @@ export function InventoryDialog({
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">
+              <Label htmlFor="description" className="text-right text-xs sm:text-sm">
                 Description
               </Label>
               <Textarea

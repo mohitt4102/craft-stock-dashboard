@@ -18,16 +18,110 @@ import {
 } from "@/components/ui/select";
 import { StatsCard } from "@/components/ui/StatsCard";
 import { SalesChart } from "@/components/dashboard/SalesChart";
-import { mockCategories, mockMonthlyData } from "@/lib/mockData";
+import { mockCategories, mockMonthlyData, mockOrders } from "@/lib/mockData";
 import { formatCurrency } from "@/lib/utils";
 import { BarChart, Download } from "lucide-react";
+import { useState, useMemo } from "react";
+import { ChartData, Order, OrderItem } from "@/types";
+
+type DateRange = "week" | "month" | "quarter" | "year" | "all";
 
 export default function Reports() {
-  // In a real app, these values would be calculated from filtered data
-  const totalRevenue = 35000;
-  const totalCost = 15000;
-  const totalProfit = 20000;
-  const totalUnitsSold = 453;
+  const [dateRange, setDateRange] = useState<DateRange>("year");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  
+  // Filter orders based on selected date range and category
+  const filteredOrders = useMemo(() => {
+    const now = new Date();
+    let minDate = new Date();
+    
+    // Calculate min date based on selected date range
+    switch(dateRange) {
+      case "week":
+        minDate.setDate(now.getDate() - 7);
+        break;
+      case "month":
+        minDate.setMonth(now.getMonth() - 1);
+        break;
+      case "quarter":
+        minDate.setMonth(now.getMonth() - 3);
+        break;
+      case "year":
+        minDate.setFullYear(now.getFullYear() - 1);
+        break;
+      case "all":
+      default:
+        minDate = new Date(0); // Beginning of time
+    }
+    
+    return mockOrders.filter(order => {
+      // Check date filter
+      const orderDate = new Date(order.date);
+      const isInDateRange = orderDate >= minDate && orderDate <= now;
+      
+      // Check category filter
+      const isInCategory = categoryFilter === "all" || 
+        order.items.some(item => {
+          // Find matching category for this item
+          const itemCategory = mockCategories.find(cat => 
+            cat.name === item.itemName.split(' ')[0]
+          );
+          return itemCategory && (categoryFilter === "all" || itemCategory.id === categoryFilter);
+        });
+      
+      return isInDateRange && isInCategory;
+    });
+  }, [dateRange, categoryFilter]);
+  
+  // Calculate statistics from filtered orders
+  const { totalRevenue, totalCost, totalProfit, totalUnitsSold, bestSellingItems, chartData } = useMemo(() => {
+    const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+    const totalCost = filteredOrders.reduce((sum, order) => sum + order.totalCost, 0);
+    const totalProfit = filteredOrders.reduce((sum, order) => sum + order.profit, 0);
+    
+    // Calculate total units sold
+    const totalUnitsSold = filteredOrders.reduce((sum, order) => {
+      return sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0);
+    }, 0);
+    
+    // Find best selling items
+    const itemSales: Record<string, {name: string, quantity: number}> = {};
+    filteredOrders.forEach(order => {
+      order.items.forEach(item => {
+        if (itemSales[item.itemId]) {
+          itemSales[item.itemId].quantity += item.quantity;
+        } else {
+          itemSales[item.itemId] = {
+            name: item.itemName,
+            quantity: item.quantity
+          };
+        }
+      });
+    });
+    
+    // Sort by quantity sold and take top 5
+    const bestSellingItems = Object.values(itemSales)
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 5);
+    
+    // Generate chart data based on filtered orders
+    // For this demo, we'll use the mock data but in a real app this would be calculated
+    const chartData = mockMonthlyData;
+    
+    return {
+      totalRevenue,
+      totalCost,
+      totalProfit,
+      totalUnitsSold,
+      bestSellingItems,
+      chartData
+    };
+  }, [filteredOrders]);
+
+  const handleGenerateReport = () => {
+    // In a real app, this would update the report data
+    // but our data is already reactive
+  };
 
   return (
     <AppLayout>
@@ -35,14 +129,14 @@ export default function Reports() {
         heading="Reports"
         text="Analyze your business performance with detailed reports."
         actions={
-          <>
+          <div className="flex flex-col sm:flex-row gap-2">
             <Button variant="outline">
               <Download className="mr-2 h-4 w-4" /> Export CSV
             </Button>
             <Button variant="outline">
               <Download className="mr-2 h-4 w-4" /> Export PDF
             </Button>
-          </>
+          </div>
         }
       />
 
@@ -55,7 +149,7 @@ export default function Reports() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Date Range</label>
-              <Select defaultValue="year">
+              <Select value={dateRange} onValueChange={(value: DateRange) => setDateRange(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select period" />
                 </SelectTrigger>
@@ -70,7 +164,7 @@ export default function Reports() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Category</label>
-              <Select defaultValue="all">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -85,7 +179,7 @@ export default function Reports() {
               </Select>
             </div>
             <div className="flex items-end">
-              <Button className="w-full">
+              <Button className="w-full" onClick={handleGenerateReport}>
                 <BarChart className="mr-2 h-4 w-4" /> Generate Report
               </Button>
             </div>
@@ -119,7 +213,7 @@ export default function Reports() {
 
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-5">
         <SalesChart
-          data={mockMonthlyData}
+          data={chartData}
           title="Sales Performance"
           description="Revenue and profit by month"
         />
@@ -131,26 +225,18 @@ export default function Reports() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="font-medium">Leather Tote Bag</span>
-                <span>42 units</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Cotton T-Shirt</span>
-                <span>38 units</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Silver Bracelet</span>
-                <span>32 units</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Scented Candle Set</span>
-                <span>28 units</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-medium">Wireless Headphones</span>
-                <span>25 units</span>
-              </div>
+              {bestSellingItems.length > 0 ? (
+                bestSellingItems.map((item, index) => (
+                  <div key={index} className="flex justify-between">
+                    <span className="font-medium">{item.name}</span>
+                    <span>{item.quantity} units</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-muted-foreground">
+                  No sales data available for the selected filters.
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

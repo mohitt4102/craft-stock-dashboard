@@ -11,16 +11,29 @@ import { Item } from "@/types";
 import { mockItems, mockCategories } from "@/lib/mockData";
 import { Plus, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function Inventory() {
   const { toast } = useToast();
   const [selectedCategory, setSelectedCategory] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | undefined>(undefined);
+  const [items, setItems] = useState<Item[]>(mockItems);
+  const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
 
   // Filter items by category and search query
-  const filteredItems = mockItems.filter(
+  const filteredItems = items.filter(
     (item) =>
       (selectedCategory === "" || item.category === selectedCategory) &&
       (searchQuery === "" ||
@@ -39,24 +52,59 @@ export default function Inventory() {
   };
 
   const handleDeleteItem = (item: Item) => {
-    // In a real app, this would delete from the database
-    toast({
-      title: "Item Deleted",
-      description: `${item.name} has been removed from inventory.`,
-    });
+    setItemToDelete(item);
+    setDeleteDialogOpen(true);
   };
 
-  const handleSaveItem = (item: Partial<Item>) => {
-    // In a real app, this would save to the database
+  const confirmDelete = () => {
+    if (!itemToDelete) return;
+    
+    const newItems = items.filter((item) => item.id !== itemToDelete.id);
+    setItems(newItems);
+    
+    toast({
+      title: "Item Deleted",
+      description: `${itemToDelete.name} has been removed from inventory.`,
+    });
+    
+    setDeleteDialogOpen(false);
+    setItemToDelete(null);
+  };
+
+  const handleSaveItem = (itemData: Partial<Item>) => {
+    // If editing existing item
     if (selectedItem) {
+      const updatedItems = items.map((item) =>
+        item.id === selectedItem.id
+          ? { ...item, ...itemData, updatedAt: new Date() }
+          : item
+      );
+      setItems(updatedItems);
+      
       toast({
         title: "Item Updated",
-        description: `${item.name} has been updated.`,
+        description: `${itemData.name} has been updated.`,
       });
-    } else {
+    } 
+    // If adding new item
+    else {
+      const newItem: Item = {
+        id: `item-${Date.now()}`,
+        name: itemData.name || "",
+        category: itemData.category || "",
+        quantity: itemData.quantity || 0,
+        purchasePrice: itemData.purchasePrice || 0,
+        sellingPrice: itemData.sellingPrice || 0,
+        description: itemData.description || "",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      setItems([newItem, ...items]);
+      
       toast({
         title: "Item Added",
-        description: `${item.name} has been added to inventory.`,
+        description: `${newItem.name} has been added to inventory.`,
       });
     }
   };
@@ -103,6 +151,24 @@ export default function Inventory() {
         categories={mockCategories}
         onSave={handleSaveItem}
       />
+      
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {itemToDelete?.name} from your inventory.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

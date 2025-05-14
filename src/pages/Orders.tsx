@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OrderTable } from "@/components/orders/OrderTable";
 import { OrderDialog } from "@/components/orders/OrderDialog";
+import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
 import { useState } from "react";
 import { mockOrders } from "@/lib/mockData";
 import { Plus, Search } from "lucide-react";
@@ -15,29 +16,31 @@ export default function Orders() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orders, setOrders] = useState<Order[]>(mockOrders);
 
   // Filter orders by search query (order ID or items)
-  const filteredOrders = mockOrders.filter(
+  const filteredOrders = orders.filter(
     (order) =>
       searchQuery === "" ||
-      order.id.includes(searchQuery) ||
+      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.items.some((item) =>
         item.itemName.toLowerCase().includes(searchQuery.toLowerCase())
       )
   );
 
   const handleAddOrder = () => {
-    // In a real app, this would open a form to create a new order
-    toast({
-      title: "Add Order",
-      description: "Order creation form not implemented in this demo.",
-    });
+    setCreateDialogOpen(true);
   };
 
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order);
     setViewDialogOpen(true);
+  };
+  
+  const handleSaveOrder = (order: Order) => {
+    setOrders([order, ...orders]);
   };
 
   return (
@@ -70,6 +73,12 @@ export default function Orders() {
         open={viewDialogOpen}
         onOpenChange={setViewDialogOpen}
         order={selectedOrder}
+      />
+      
+      <CreateOrderDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSave={handleSaveOrder}
       />
     </AppLayout>
   );
