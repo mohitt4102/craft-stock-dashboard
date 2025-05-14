@@ -133,7 +133,7 @@ export function InventoryDialog({
                 name="quantity"
                 type="number"
                 min="0"
-                value={formData.quantity}
+                value={formData.quantity?.toString() || "0"}
                 onChange={handleChange}
                 className="col-span-3"
                 required
@@ -149,7 +149,7 @@ export function InventoryDialog({
                 type="number"
                 min="0"
                 step="0.01"
-                value={formData.purchasePrice}
+                value={formData.purchasePrice?.toString() || "0"}
                 onChange={handleChange}
                 className="col-span-3"
                 required
@@ -165,7 +165,7 @@ export function InventoryDialog({
                 type="number"
                 min="0"
                 step="0.01"
-                value={formData.sellingPrice}
+                value={formData.sellingPrice?.toString() || "0"}
                 onChange={handleChange}
                 className="col-span-3"
                 required
